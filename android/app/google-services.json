@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "315183933286",
+    "project_id": "wild-life-94136",
+    "storage_bucket": "wild-life-94136.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:315183933286:android:fd1966df795e694f820aa7",
+        "android_client_info": {
+          "package_name": "com.example.wild_life"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "315183933286-dp2cm21v322ltn3crnngso0hc4u2gsmc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1y52G75QK8v_fL-6lq0WTNkFkJ81QGTE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "315183933286-dp2cm21v322ltn3crnngso0hc4u2gsmc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
