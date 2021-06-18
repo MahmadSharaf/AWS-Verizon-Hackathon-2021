@@ -3,6 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 Future<void> _messageHandler(RemoteMessage message) async {
   print('background message ${message.notification!.body}');
@@ -67,15 +68,15 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     FirebaseMessaging.onMessage.listen((RemoteMessage event) {
       print("message recieved");
-      print(event.notification!.body);
+      final notification = json.decode(event.data['default']);
       showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text("Notification"),
+              title: Text("Wild Animal Alert"),
               content: Column(children: [
-                Text(event.notification!.body!),
-                Image.network(event.notification!.android!.imageUrl!)
+                Text(notification['body']),
+                Image.network(notification['imageUrl'])
               ]),
               // content: Text(event.notification!.body!),
               actions: [
