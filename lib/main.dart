@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:async';
@@ -59,16 +61,18 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late FirebaseMessaging messaging;
+  late String token;
   @override
   void initState() {
     super.initState();
     messaging = FirebaseMessaging.instance;
     messaging.getToken().then((value) {
       print(value);
+      token = value!;
     });
-    FirebaseMessaging.onMessage.listen((RemoteMessage event) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print("message recieved");
-      final notification = json.decode(event.data['default']);
+      final notification = json.decode(message.data['default']);
       showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -92,17 +96,39 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      print('Message clicked!');
+      final notification = json.decode(message.data['default']);
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text("Wild Animal Alert"),
+              content: Column(children: [
+                Text(notification['body']),
+                Image.network(notification['imageUrl'])
+              ]),
+              // content: Text(event.notification!.body!),
+              actions: [
+                TextButton(
+                  child: Text("Ok"),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                )
+              ],
+            );
+          });
     });
   }
 
   int counter = 0;
   List<String> strings = ["Stream Stopped", "Streaming"];
   String displayedString = "Start Stream";
+
   void onPressed() {
     setState(() {
       if (counter == 0) {
-        print(startStream());
+        print(startStream(
+            token, '192.168.1.109:8080/video', Platform.operatingSystem));
         displayedString = "Streaming";
         counter = 1;
       } else {
@@ -166,9 +192,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<String> startStream() async {
+Future<String> startStream([token = '', String url = '', platform]) async {
   final response = await http.get(Uri.parse(
-      'https://jm7eey7i2m.execute-api.us-east-1.amazonaws.com/streamTrigger?stream=start'));
+      'https://jm7eey7i2m.execute-api.us-east-1.amazonaws.com/streamTrigger?stream=start&token=' +
+          token +
+          '&cameraUrl=' +
+          url +
+          '&platform=' +
+          platform));
 
   if (response.statusCode == 200) {
     // If the server did return a 200 OK response,
