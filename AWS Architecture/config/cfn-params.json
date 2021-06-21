@@ -1,0 +1,10 @@
+{
+    "SourceS3BucketParameter" : "mayors-lambda-functions",
+    "ImageProcessorSourceS3KeyParameter" : "src/lambda_imageprocessor.zip",
+    "FrameFetcherSourceS3KeyParameter" : "src/lambda_framefetcher.zip",
+    "FrameS3BucketNameParameter" : "mayors-detected-frames",
+    "FrameFetcherApiResourcePathPart" : "enrichedframe",
+    "ApiGatewayRestApiNameParameter" : "VidAnalyzerRestApi",
+    "ApiGatewayStageNameParameter": "development",
+    "ApiGatewayUsagePlanNameParameter" : "development-plan"
+}
