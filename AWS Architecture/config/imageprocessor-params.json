@@ -1,0 +1,17 @@
+{
+	"s3_bucket" : "mayors-detected-frames",
+	"s3_key_frames_root" : "frames/",
+
+	"ddb_table" : "EnrichedFrame",
+
+	"rekog_max_labels" : 123,
+    "rekog_min_conf" : 50.0,
+
+	"label_watch_list" : ["Wildlife", "Bear", "Wolf", "Lion","Tiger"],
+	"label_watch_min_conf" : 90.0,
+	"label_watch_phone_num" : "+201003799637",
+    "label_watch_sns_topic_arn" : "arn:aws:sns:us-east-1:367176934720:Wild-Animal-Alert",
+	"label_watch_sns_android_platform_arn" : "arn:aws:sns:us-east-1:367176934720:app/GCM/wild_life_app",
+
+	"timezone" : "Africa/Cairo"
+}

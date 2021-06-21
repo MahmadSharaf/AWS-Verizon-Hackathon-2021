@@ -57,7 +57,8 @@ def process_image(event, context):
     label_watch_list = config["label_watch_list"]
     label_watch_min_conf = float(config["label_watch_min_conf"])
     label_watch_phone_num = config.get("label_watch_phone_num", "")
-    label_watch_sns_topic_arn = config.get("label_watch_sns_topic_arn", "")
+    label_watch_sns_android_platform_arn = config.get("label_watch_sns_android_platform_arn", "")
+    s3_presigned_url_expiry = config["s3_pre_signed_url_expiry"]
 
     #Iterate on frames fetched from Kinesis
     for record in event['Records']:
@@ -123,62 +124,58 @@ def process_image(event, context):
                 instance['Confidence'] = Decimal(instance['Confidence'])
 
         #Send out notification(s), if needed
-        if len(labels_on_watch_list) > 0 \
-                and (label_watch_phone_num or label_watch_sns_topic_arn):
+        if len(labels_on_watch_list) > 0:
 
-            notification_txt = 'On {}...\n'.format(now.strftime('%x, %-I:%M %p %Z'))
 
-            for label in labels_on_watch_list:
+            #Store frame image in S3
+            s3_key = (s3_key_frames_root + '{}/{}/{}/{}/{}.jpg').format(year, mon, day, hour, frame_id)
+            
+            s3_client.put_object(
+                Bucket=s3_bucket,
+                Key=s3_key,
+                Body=img_bytes
+            )
+            
+            s3_presigned_url = s3_client.generate_presigned_url(
+                ClientMethod='get_object',
+                Params={
+                    'Bucket' : s3_bucket,
+                    'Key' : s3_key
+                },
+                ExpiresIn=s3_presigned_url_expiry
+            )
+            
+            #Persist frame data in dynamodb
+    
+            item = {
+                'frame_id': frame_id,
+                'processed_timestamp' : processed_timestamp,
+                'approx_capture_timestamp' : approx_capture_timestamp,
+                'rekog_labels' : rekog_response['Labels'],
+                'rekog_orientation_correction' : 
+                    rekog_response['OrientationCorrection'] 
+                    if 'OrientationCorrection' in rekog_response else 'ROTATE_0',
+                'processed_year_month' : year + mon, #To be used as a Hash Key for DynamoDB GSI
+                's3_bucket' : s3_bucket,
+                's3_key' : s3_key
+            }
+    
+            ddb_table.put_item(Item=item)
 
-                notification_txt += '- "{}" was detected with {}% confidence.\n'.format(
-                    label['Name'],
-                    round(label['Confidence'], 2))
-
-            print(notification_txt)
-
-            if label_watch_phone_num:
-                sns_client.publish(PhoneNumber=label_watch_phone_num, Message=notification_txt)
-
-            if label_watch_sns_topic_arn:
-                resp = sns_client.publish(
-                    TopicArn=label_watch_sns_topic_arn,
-                    Message=json.dumps(
-                        {
-                            "message": notification_txt,
-                            "labels": labels_on_watch_list
-                        }
-                    )
-                )
+            # Send push notification
+            body = '{} was detected with {}% confidence.'.format(label['Name'],round(label['Confidence'], 2))
+            imageUrl = s3_presigned_url
+            messageBody = {"body": body,"imageUrl": imageUrl}
+                            
+            subscribers = sns_client.list_endpoints_by_platform_application(PlatformApplicationArn=label_watch_sns_android_platform_arn)
+            susbcribersEndpoint = subscribers['Endpoints']
+            for subscriber in susbcribersEndpoint:
+                endpointArn = subscriber['EndpointArn']
+                resp = sns_client.publish(TargetArn=endpointArn,Message=json.dumps(messageBody))
 
                 if resp.get("MessageId", ""):
-                    print("Successfully published alert message to SNS.")
-
-        #Store frame image in S3
-        s3_key = (s3_key_frames_root + '{}/{}/{}/{}/{}.jpg').format(year, mon, day, hour, frame_id)
-        
-        s3_client.put_object(
-            Bucket=s3_bucket,
-            Key=s3_key,
-            Body=img_bytes
-        )
-        
-        #Persist frame data in dynamodb
-
-        item = {
-            'frame_id': frame_id,
-            'processed_timestamp' : processed_timestamp,
-            'approx_capture_timestamp' : approx_capture_timestamp,
-            'rekog_labels' : rekog_response['Labels'],
-            'rekog_orientation_correction' : 
-                rekog_response['OrientationCorrection'] 
-                if 'OrientationCorrection' in rekog_response else 'ROTATE_0',
-            'processed_year_month' : year + mon, #To be used as a Hash Key for DynamoDB GSI
-            's3_bucket' : s3_bucket,
-            's3_key' : s3_key
-        }
-
-        ddb_table.put_item(Item=item)
-
+                    print("Successfully published push notification to SNS.")
+                    
     print('Successfully processed {} records.'.format(len(event['Records'])))
     return
 
