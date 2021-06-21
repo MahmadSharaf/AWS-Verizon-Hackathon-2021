@@ -19,7 +19,6 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -36,7 +35,7 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(title: 'Near-Wild Safety'),
     );
   }
 }
@@ -96,48 +95,48 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      final notification = json.decode(message.data['default']);
-      showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text("Wild Animal Alert"),
-              content: Column(children: [
-                Text(notification['body']),
-                Image.network(notification['imageUrl'])
-              ]),
-              // content: Text(event.notification!.body!),
-              actions: [
-                TextButton(
-                  child: Text("Ok"),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                )
-              ],
-            );
-          });
+      print('Message clicked!');
     });
   }
 
   int counter = 0;
   List<String> strings = ["Stream Stopped", "Streaming"];
   String displayedString = "Start Stream";
+  final _formKey = GlobalKey<FormState>();
+  TextEditingController cameraUrl = new TextEditingController();
+  bool viewVisible = true;
 
   void onPressed() {
     setState(() {
       if (counter == 0) {
-        print(startStream(
-            token, '192.168.1.109:8080/video', Platform.operatingSystem));
+        hideWidget();
+        print(startStream(token, cameraUrl.text, Platform.operatingSystem));
         displayedString = "Streaming";
         counter = 1;
       } else {
+        showWidget();
         print(stopStream());
         displayedString = "Stream Stopped";
         counter = 0;
       }
       // displayedString = strings[counter];
       // counter = counter < 1 ? counter + 1 : 0;
+    });
+  }
+
+  Color hexToColor(String code) {
+    return new Color(int.parse(code.substring(1, 7), radix: 16) + 0xFF000000);
+  }
+
+  void showWidget() {
+    setState(() {
+      viewVisible = true;
+    });
+  }
+
+  void hideWidget() {
+    setState(() {
+      viewVisible = false;
     });
   }
 
@@ -156,39 +155,65 @@ class _MyHomePageState extends State<MyHomePage> {
           title: Text(widget.title),
         ),
         body: Center(
-            // Center is a layout widget. It takes a single child and positions it
-            // in the middle of the parent.
-            child: Column(
-                // Column is also a layout widget. It takes a list of children and
-                // arranges them vertically. By default, it sizes itself to fit its
-                // children horizontally, and tries to be as tall as its parent.
-                //
-                // Invoke "debug painting" (press "p" in the console, choose the
-                // "Toggle Debug Paint" action from the Flutter Inspector in Android
-                // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-                // to see the wireframe for each widget.
-                //
-                // Column has various properties to control how it sizes itself and
-                // how it positions its children. Here we use mainAxisAlignment to
-                // center the children vertically; the main axis here is the vertical
-                // axis because Columns are vertical (the cross axis would be
-                // horizontal).
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-              new Text(displayedString,
-                  style: new TextStyle(
-                      fontSize: 30.0, fontWeight: FontWeight.bold)),
-              new Padding(padding: new EdgeInsets.all(10.0)),
-              new ElevatedButton(
-                child: new Text("Click me!",
-                    style: new TextStyle(
-                        color: Colors.white,
-                        fontStyle: FontStyle.italic,
-                        fontSize: 20.0)),
-                // color: Colors.red,
-                onPressed: onPressed,
-              )
-            ])));
+            child: new Container(
+                padding: const EdgeInsets.all(30.0),
+                color: Colors.white,
+                child: new Form(
+                  key: _formKey,
+                  child: new Center(
+                      child: new Column(children: [
+                    new Padding(padding: EdgeInsets.only(top: 140.0)),
+                    new Text(displayedString,
+                        style: new TextStyle(
+                            fontSize: 30.0, fontWeight: FontWeight.bold)),
+                    new Padding(padding: EdgeInsets.only(top: 50.0)),
+                    Visibility(
+                        maintainSize: true,
+                        maintainAnimation: true,
+                        maintainState: true,
+                        visible: viewVisible,
+                        child: new TextFormField(
+                          controller: cameraUrl,
+                          decoration: new InputDecoration(
+                            labelText: "Enter IP Camera URL",
+                            fillColor: Colors.white,
+                            border: new OutlineInputBorder(
+                              borderRadius: new BorderRadius.circular(25.0),
+                              borderSide: new BorderSide(),
+                            ),
+                            //fillColor: Colors.green
+                          ),
+                          validator: (val) {
+                            if (val!.length == 0) {
+                              return "URL cannot be empty";
+                            } else {
+                              return null;
+                            }
+                          },
+                          keyboardType: TextInputType.url,
+                          style: new TextStyle(
+                            fontFamily: "Poppins",
+                          ),
+                        )),
+                    new Padding(padding: new EdgeInsets.all(10.0)),
+                    new ElevatedButton(
+                      child: new Text("Click me!",
+                          style: new TextStyle(
+                              color: Colors.white,
+                              fontStyle: FontStyle.italic,
+                              fontSize: 20.0)),
+                      // color: Colors.red,
+                      onPressed: () {
+                        // Validate returns true if the form is valid, or false otherwise.
+                        if (_formKey.currentState!.validate()) {
+                          onPressed();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Sending Request')));
+                        }
+                      },
+                    )
+                  ])),
+                ))));
   }
 }
 
